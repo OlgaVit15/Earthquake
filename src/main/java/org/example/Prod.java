@@ -7,7 +7,7 @@ import org.apache.kafka.clients.producer.*;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.json.JSONObject;
 
-class DemoProducerCallback implements Callback {
+class DemoProducer implements Callback {
     public void onCompletion(RecordMetadata metadata, Exception exception) {
         if (exception != null) {
             System.err.println("Error while producing message to topic :" + metadata.topic());
@@ -19,9 +19,9 @@ class DemoProducerCallback implements Callback {
 }
 
 
-public class KProducer {
+public class Prod {
 
-    public static void kproducer(String key, Event value) {
+    public static void kprod() {
         Properties KafkaProps = new Properties();
         KafkaProps.put("bootstrap.servers", "localhost:9094");
         KafkaProps.put("key.serializer", StringSerializer.class.getName());
@@ -30,17 +30,18 @@ public class KProducer {
         KafkaProps.put("acks", "1");
 
         Producer<String, Event> producer = new KafkaProducer<>(KafkaProps);
-
-        ProducerRecord<String, Event> record = new ProducerRecord<>("topic1", key, value);
+        Event event = new Event("2023-10-01T12:11:55Z", "US", 10.0, 43.0, 55.0, 5.0);
 
         try {
-            producer.send(record, new DemoProducerCallback());
-        } catch (Exception e){
+            producer.send(new ProducerRecord<>("topic1", "1", event), new DemoProducer());
+        } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            producer.close(); // Закрытие продюсера
         }
     }
 
-    /*public static void main(String[] args) throws Exception {
-        kproducer();
-    }*/
+    public static void main(String[] args) {
+        kprod();
+    }
 }

@@ -16,11 +16,61 @@ services:
     depends_on:
       - zookeeper
     ports:
-      - 29092:29092
+      - 9092:9092
+      - 9094:9094
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
+      KAFKA_ADVERTISED_LISTENERS: INSIDE://host.docker.internal:9092,OUTSIDE://localhost:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+      KAFKA_LISTENERS: INSIDE://0.0.0.0:9092,OUTSIDE://0.0.0.0:9094
+      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE  # Измените на INSIDE
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: flink_user
+      POSTGRES_PASSWORD: flink_pass
+      POSTGRES_DB: flink_db
+    ports:
+      - "5432:5432"
+
+  jobmanager:
+    image: apache/flink:1.16.0-scala_2.12
+    ports:
+      - "8081:8081" # Flink UI
+      - "6123:6123" # RPC Port
+    environment:
+      - JOB_MANAGER_RPC_ADDRESS=jobmanager
+      - KAFKA_REQUEST_TIMEOUT_MS=180000  # Увеличение таймаута запроса до 60 секунд
+      - KAFKA_METADATA_FETCH_TIMEOUT_MS=180000  # Увеличение таймаута на получение метаданных до 60 секунд
+      - KAFKA_SESSION_TIMEOUT_MS=180000  # Увеличение таймаута сессии до 60 секунд
+    command: jobmanager
+    networks:
+      - eventhub-net
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'  # Ограничение на использование CPU (0.5 CPU)
+          memory: 512M  # Ограничение на использование памяти (512 MB)
+
+  taskmanager:
+    image: apache/flink:1.16.0-scala_2.12
+    depends_on:
+      - jobmanager
+    environment:
+      - TASK_MANAGER_NUMBER_OF_TASK_SLOTS=1
+      - JOB_MANAGER_RPC_ADDRESS=jobmanager
+    command: taskmanager
+    networks:
+      - eventhub-net
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'  # Ограничение на использование CPU (0.5 CPU)
+          memory: 512M  # Ограничение на использование памяти (512 MB)
+
+networks:
+  eventhub-net:
+    driver: bridge

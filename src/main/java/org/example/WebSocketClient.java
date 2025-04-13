@@ -31,17 +31,17 @@ public class WebSocketClient {
         double depth = properties.getDouble("depth");
         double mag = properties.getDouble("mag");
         System.out.println("try: " + lu + " " + reg + " " + mag);
-
-        JSONObject eq = new JSONObject();
+        Event val = new Event(lu, reg, depth, lon, lat, mag);
+        /*JSONObject eq = new JSONObject();
         eq.put("lastupdate", lu);
         eq.put("region", reg);
         eq.put("lat", lat);
         eq.put("lon", lon);
         eq.put("depth", depth);
-        eq.put("mag", mag);
+        eq.put("mag", mag);*/
 
         KProducer kpr = new KProducer();
-        kpr.kproducer(id, eq.toString());
+        kpr.kproducer(id, val);
     }
 
     public static void main(String[] args) {
